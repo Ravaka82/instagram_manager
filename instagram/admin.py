@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib import admin
-from django.utils.html import format_html  # Pour générer des balises HTML dans l'admin
+from django.utils.html import format_html  
 from instagram.core.instagram_service import InstagramService
 from .models import InstagramUser
 
@@ -44,5 +44,4 @@ class InstagramUserAdmin(admin.ModelAdmin):
      
     update_instagram_account_action.short_description = "Mettre à jour les comptes Instagram"
 
-# Enregistrer l'admin
 admin.site.register(InstagramUser, InstagramUserAdmin)

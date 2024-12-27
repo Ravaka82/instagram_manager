@@ -35,6 +35,7 @@ class InstagramService:
                 name_updated = True 
             except Exception as e:
                 if "You can't change your name right now" in str(e):
+                    name_updated = False
                     print("⚠️ Impossible de changer le nom en raison de restrictions de fréquence de changement.")
                 else:
                     raise e  
