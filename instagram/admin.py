@@ -39,6 +39,8 @@ class InstagramUserAdmin(admin.ModelAdmin):
             rep_User = instagram_service.authenticate(username, password, otp)
             if rep_User==1:
                 self.message_user(request, f"✅ Instagram account '{username}' successfully created.", level=messages.SUCCESS)
+            if rep_User==2:
+                self.message_user(request, "❌ This Instagram account already exists in the application.", level=messages.ERROR)
             else:
                 self.message_user(request, "❌ Instagram account does not exist.", level=messages.ERROR)
             return HttpResponseRedirect('..')

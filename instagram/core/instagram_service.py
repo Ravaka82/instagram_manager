@@ -9,12 +9,18 @@ from instagram.models import InstagramUser
 class InstagramService:
     def __init__(self):
         self.client = Client()
+  
+
     def authenticate(self, username, password, otp=None):
         try:
+            existing_user = InstagramUser.objects.filter(username=username, password=password).first()
+            if existing_user:
+                print("🔑 Connexion avec un utilisateur existant...")
+                return 2  
+            
             print("🔑 Connexion à Instagram...")
             if otp:
                 print("Étape : Connexion avec OTP")
-                # Connexion avec mot de passe et OTP
                 login_response = self.client.login(username, password, verification_code=otp)
                 if not login_response:
                     raise ValueError("Échec de la connexion avec le code OTP")
@@ -26,8 +32,8 @@ class InstagramService:
             InstagramUser.objects.update_or_create(
                     defaults={
                         "username": user_info.username,
-                        "password":password,
-                        "name":user_info.full_name,
+                        "password": password,
+                        "name": user_info.full_name,
                         "profile_picture": str(user_info.profile_pic_url),
                         "bio": user_info.biography,
                         "bio_link": str(user_info.external_url) if user_info.external_url else None,
@@ -36,19 +42,17 @@ class InstagramService:
             )
             print(f"Informations de l'utilisateur récupérées avec succès : {user_info}")
             return 1
-        
+
         except TwoFactorRequired:
-            return 0
             print("Erreur : Code OTP requis ou incorrect.")
-            raise ValueError("Code OTP requis ou incorrect.")
+            return 0
         except ClientError:
-            return 0
             print("Erreur : Nom d'utilisateur ou mot de passe incorrect.")
-            raise ValueError("Nom d'utilisateur ou mot de passe incorrect.")
-        except Exception as e:
             return 0
+        except Exception as e:
             print(f"Erreur générale : {e}")
-            raise ValueError(f"{e}")
+            return 0
+
         
     def update_account(self, instagram_user):
         name_updated = False  
