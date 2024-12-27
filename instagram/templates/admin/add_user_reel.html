@@ -1,0 +1,73 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content %}
+  <div class="module">
+    <h1>Add account via Instagram</h1>
+    <form method="post">
+      {% csrf_token %}
+      <div>
+        <label for="id_username">Username:</label>
+        <input type="text" name="username" id="id_username" required>
+      </div>
+      <div>
+        <label for="id_password">Password:</label>
+        <input type="password" name="password" id="id_password" required>
+      </div>
+      <div>
+        <button type="submit" class="button default">register</button>
+      </div>
+      
+    </form>
+  </div>
+  <div class="module-link">
+    <a href="{% url 'admin:instagram_instagramuser_changelist' %}" class="button">⬅ back</a>
+  </div>
+{% endblock %}
+{% block extrahead %}
+  {{ block.super }}
+  <style>
+    .module {
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 5px;
+      width: 50%;
+      margin-left: 25%;
+      margin-right: 25%;
+    }
+    .module h1 {
+      font-size: 1.5em;
+      margin-bottom: 15px;
+    }
+    .module div {
+      margin-bottom: 10px;
+    }
+    .module label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .module input {
+      width: 80%;
+      padding: 5px;
+      margin-bottom: 10px;
+    }
+    .module button {
+      background-color: #417690;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .module button:hover {
+      background-color: #305774;
+    }
+    .module-link {
+      width: 50%;
+      margin-left: 25%;
+      margin-right: 25%;
+    }
+  </style>
+{% endblock %}

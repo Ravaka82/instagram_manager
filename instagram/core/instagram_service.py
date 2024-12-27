@@ -2,11 +2,54 @@ import os
 from django.core.files.storage import default_storage
 from instagrapi import Client
 from django.core.exceptions import ValidationError
+from instagrapi.exceptions import ClientError, TwoFactorRequired
+
+from instagram.models import InstagramUser
 
 class InstagramService:
     def __init__(self):
         self.client = Client()
+    def authenticate(self, username, password, otp=None):
+        try:
+            print("🔑 Connexion à Instagram...")
+            if otp:
+                print("Étape : Connexion avec OTP")
+                # Connexion avec mot de passe et OTP
+                login_response = self.client.login(username, password, verification_code=otp)
+                if not login_response:
+                    raise ValueError("Échec de la connexion avec le code OTP")
+            else:
+                print("Étape : Connexion normale")
+                self.client.login(username, password)
 
+            user_info = self.client.account_info()
+            InstagramUser.objects.update_or_create(
+                    defaults={
+                        "username": user_info.username,
+                        "password":password,
+                        "name":user_info.full_name,
+                        "profile_picture": str(user_info.profile_pic_url),
+                        "bio": user_info.biography,
+                        "bio_link": str(user_info.external_url) if user_info.external_url else None,
+                        "is_master": False,
+                    }
+            )
+            print(f"Informations de l'utilisateur récupérées avec succès : {user_info}")
+            return 1
+        
+        except TwoFactorRequired:
+            return 0
+            print("Erreur : Code OTP requis ou incorrect.")
+            raise ValueError("Code OTP requis ou incorrect.")
+        except ClientError:
+            return 0
+            print("Erreur : Nom d'utilisateur ou mot de passe incorrect.")
+            raise ValueError("Nom d'utilisateur ou mot de passe incorrect.")
+        except Exception as e:
+            return 0
+            print(f"Erreur générale : {e}")
+            raise ValueError(f"{e}")
+        
     def update_account(self, instagram_user):
         name_updated = False  
         profile_picture_updated = False  
@@ -35,9 +78,9 @@ class InstagramService:
                 if "You can't change your name right now" in str(e):
                     name_updated = False
                     print("⚠️ Impossible de changer le nom en raison de restrictions de fréquence de changement.")
-                    messageError = "⚠️ Impossible de changer le nom en raison de restrictions de fréquence de changement. La restriction est souvent levée après 14 jours, donc vous pouvez réessayer plus tard."
+                    messageError = "⚠️ Unable to change the name due to change frequency restrictions. The restriction is often lifted after 14 days, so you can try again later."
                 else:
-                    raise ValidationError(f"⚠️ Erreur lors de la mise à jour du nom : {str(e)}")
+                    raise ValidationError(f"⚠️ Error while updating the name.: {str(e)}")
 
             if profile_picture_path and os.path.exists(profile_picture_path):
                 print(f"📸 Mise à jour de la photo de profil depuis : {profile_picture_path}")
@@ -46,8 +89,8 @@ class InstagramService:
                     print("✅ Photo de profil mise à jour avec succès.")
                     profile_picture_updated = True  
                 else:
-                    messageError = "❌ Échec du changement de la photo de profil."
-                    raise ValidationError("❌ Échec du changement de la photo de profil.")
+                    messageError = "❌ Failed to change the profile picture."
+                    raise ValidationError("❌ Failed to change the profile picture.")
             else:
                 raise ValidationError(f"❌ Le fichier '{profile_picture_path}' est introuvable.")
 
