@@ -1,13 +1,14 @@
-from django import forms
-from django.contrib import admin
 from django.utils.html import format_html  
-from instagram.core.instagram_service import InstagramService
+from django.contrib import admin
+from django.contrib import messages
+from django.core.exceptions import ValidationError
 from .models import InstagramUser
-
+from .core.instagram_service import InstagramService
 
 class InstagramUserAdmin(admin.ModelAdmin):
     fields = ['name', 'profile_picture', 'bio', 'bio_link', 'is_master']
     list_display = ['username','name','password','is_master','profile_picture_display'] 
+    actions = ['update_instagram_account']
     search_fields = ['name','username']
     actions = ['update_instagram_account_action']
 
@@ -21,27 +22,27 @@ class InstagramUserAdmin(admin.ModelAdmin):
         return "Pas d'image"
 
     profile_picture_display.short_description = 'Profil_picture' 
-
     def save_model(self, request, obj, form, change):
+        service = InstagramService()
         try:
             super().save_model(request, obj, form, change)
-            if change:  
-                service = InstagramService()
-                service.update_account(obj)
-                self.message_user(request, f"Compte Instagram '{obj.name}' mis à jour avec succès.")
+            service.update_account(obj)
+            self.message_user(request, f"✅ Compte Instagram '{obj.username}' mis à jour avec succès.", level=messages.SUCCESS)
+        except ValidationError as e:
+            self.message_user(request, f"❌ Erreur : {e.message}", level=messages.ERROR)
         except Exception as e:
-            self.message_user(request, f"Erreur lors de la mise à jour Instagram pour '{obj.name}': {e}", level='error')
+            self.message_user(request, "❌ Une erreur inattendue est survenue.", level=messages.ERROR)
 
-    def update_instagram_account_action(self, request, queryset):
+    @admin.action(description="Mettre à jour les comptes Instagram sélectionnés")
+    def update_instagram_account(self, request, queryset):
         service = InstagramService()
-        for instagram_user in queryset:
+        for obj in queryset:
             try:
-                print(f"Mise à jour de l'utilisateur Instagram : {instagram_user.name}")
-                service.update_account(instagram_user)
+                service.update_account(obj)
+                self.message_user(request, f"✅ Compte '{obj.username}' mis à jour avec succès.", level=messages.SUCCESS)
+            except ValidationError as e:
+                self.message_user(request, f"❌ Erreur : {e.message}", level=messages.ERROR)
             except Exception as e:
-                self.message_user(request, f"Erreur avec {instagram_user.name} : {e}", level='error')
-
-     
-    update_instagram_account_action.short_description = "Mettre à jour les comptes Instagram"
+                self.message_user(request, "❌ Une erreur inattendue est survenue.", level=messages.ERROR)
 
 admin.site.register(InstagramUser, InstagramUserAdmin)
