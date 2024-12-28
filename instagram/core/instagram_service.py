@@ -53,7 +53,7 @@ class InstagramService:
             print(f"Erreur générale : {e}")
             return 0
 
-        
+         
     def update_account(self, instagram_user):
         name_updated = False  
         profile_picture_updated = False  
@@ -99,6 +99,8 @@ class InstagramService:
                 raise ValidationError(f"❌ Le fichier '{profile_picture_path}' est introuvable.")
 
             if name_updated and profile_picture_updated:
+                clien_info=self.client.account_info()
+                instagram_user.profile_picture=str(clien_info.profile_pic_url)
                 instagram_user.save()
                 print("✅ Les informations du compte Instagram ont été mises à jour dans la base de données.")
             else:
