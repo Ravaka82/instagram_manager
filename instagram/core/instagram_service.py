@@ -1,9 +1,9 @@
-import os
+import os,requests
 from django.core.files.storage import default_storage
 from instagrapi import Client
 from django.core.exceptions import ValidationError
 from instagrapi.exceptions import ClientError, TwoFactorRequired
-
+from tempfile import NamedTemporaryFile
 from instagram.models import InstagramUser
 
 class InstagramService:
@@ -57,38 +57,56 @@ class InstagramService:
     def update_account(self, instagram_user):
         name_updated = False  
         profile_picture_updated = False  
-        messageError=""
+        messageError = ""
+
         try:
             print("🔑 Connexion à Instagram...")
-            
+
+            profile_picture_path = None
             if instagram_user.profile_picture:
-                profile_picture_path = default_storage.path(instagram_user.profile_picture.name)
-                print(f"📸 Changement de la photo de profil depuis : {profile_picture_path}")
-            else:
-                profile_picture_path = None
+                profile_picture = instagram_user.profile_picture.name
 
+                if profile_picture.startswith('http://') or profile_picture.startswith('https://'):
+                    print(f"🌐 Téléchargement de la photo depuis l'URL : {profile_picture}")
+                    try:
+                        response = requests.get(profile_picture, stream=True)
+                        response.raise_for_status()
+                        with NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                            for chunk in response.iter_content(chunk_size=1024):
+                                tmp_file.write(chunk)
+                            profile_picture_path = tmp_file.name
+                        print(f"✅ Photo téléchargée temporairement : {profile_picture_path}")
+                    except requests.exceptions.RequestException as e:
+                        raise ValidationError(f"❌ Erreur lors du téléchargement de la photo : {e}")
+                else:
+                    profile_picture_path = default_storage.path(profile_picture)
+                    if os.path.exists(profile_picture_path):
+                        print(f"📸 Changement de la photo de profil depuis le fichier local : {profile_picture_path}")
+                    else:
+                        print(f"❌ Le fichier local '{profile_picture_path}' est introuvable.")
+                        profile_picture_path = None
             self.client.login(instagram_user.username, instagram_user.password)
-
             try:
-                print("🛠️ Mise à jour du nom d'affichage...")
+                print("🛠️ Mise à jour du nom, bio et lien...")
                 self.client.account_edit(
                     full_name=instagram_user.name,
                     biography=instagram_user.bio,
                     external_url=instagram_user.bio_link
                 )
-                print("✅ Nom d'affichage, bio et lien mis à jour sur le compte réel Instagram.")
-                name_updated = True 
+                print("✅ Nom, bio et lien mis à jour avec succès.")
+                name_updated = True
             except Exception as e:
                 if "You can't change your name right now" in str(e):
                     name_updated = False
-                    print("⚠️ Impossible de changer le nom en raison de restrictions de fréquence de changement.")
-                    messageError = "⚠️ Unable to change the name due to change frequency restrictions. The restriction is often lifted after 14 days, so you can try again later."
+                    print("⚠️ Impossible de changer le nom pour le moment en raison de restrictions de fréquence.")
+                    messageError = "⚠️ Unable to change the name due to frequency restrictions."
                 else:
-                    raise ValidationError(f"⚠️ Error while updating the name.: {str(e)}")
+                    raise ValidationError(f"⚠️ Error while updating the name: {str(e)}")
 
-            if profile_picture_path and os.path.exists(profile_picture_path):
+            if profile_picture_path:
                 print(f"📸 Mise à jour de la photo de profil depuis : {profile_picture_path}")
                 result = self.client.account_change_picture(profile_picture_path)
+
                 if result:
                     print("✅ Photo de profil mise à jour avec succès.")
                     profile_picture_updated = True  
@@ -96,18 +114,33 @@ class InstagramService:
                     messageError = "❌ Failed to change the profile picture."
                     raise ValidationError("❌ Failed to change the profile picture.")
             else:
-                raise ValidationError(f"❌ Le fichier '{profile_picture_path}' est introuvable.")
+                print("⚠️ Aucune photo de profil à mettre à jour.")
 
-            if name_updated and profile_picture_updated:
-                clien_info=self.client.account_info()
-                instagram_user.profile_picture=str(clien_info.profile_pic_url)
+
+            if name_updated or profile_picture_updated:
+                clien_info = self.client.account_info()
+                instagram_user.profile_picture = str(clien_info.profile_pic_url)
                 instagram_user.save()
                 print("✅ Les informations du compte Instagram ont été mises à jour dans la base de données.")
             else:
                 raise ValidationError(messageError)
 
         except ValidationError as e:
-            print(f"⚠️ Erreur : {e}")
+            print(f"⚠️ Erreur de validation : {e}")
             raise e
         except Exception as e:
+            print(f"❌ Erreur inattendue : {str(e)}")
             raise ValidationError(f"⚠️ Erreur inattendue : {e}")
+        finally:
+            if profile_picture_path and profile_picture_path.startswith('/tmp'):
+                try:
+                    os.remove(profile_picture_path)
+                    print(f"🧹 Fichier temporaire supprimé : {profile_picture_path}")
+                except OSError:
+                    print(f"⚠️ Impossible de supprimer le fichier temporaire : {profile_picture_path}")
+
+        return {
+            "name_updated": name_updated,
+            "profile_picture_updated": profile_picture_updated,
+            "error_message": messageError
+        }
