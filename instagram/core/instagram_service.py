@@ -10,7 +10,7 @@ class InstagramService:
     def __init__(self):
         self.client = Client()
   
-
+    #add_user
     def authenticate(self, username, password, otp=None):
         try:
             existing_user = InstagramUser.objects.filter(username=username, password=password).first()
@@ -56,7 +56,7 @@ class InstagramService:
             print(f"Erreur générale : {e}")
             return 0
 
-         
+    #update account
     def update_account(self, instagram_user):
         name_updated = False  
         profile_picture_updated = False  
@@ -166,3 +166,34 @@ class InstagramService:
             "profile_picture_updated": profile_picture_updated,
             "error_message": messageError
         }
+    
+    #synchro
+    def sync_account(self, instagram_user):
+        print(f"Synchronizing account for user: {instagram_user.username}")
+        print("🔑 Verification sur Instagram...")
+        try:
+            user_secondaire = self.client.login(instagram_user.username, instagram_user.password)
+            if user_secondaire:
+                print("ok")
+                user_info = self.client.account_info()
+                InstagramUser.objects.update_or_create(
+                id=instagram_user.id,
+                defaults={
+                    "name": user_info.full_name,
+                    "profile_picture": str(user_info.profile_pic_url),
+                    "bio": user_info.biography,
+                    "bio_link": str(user_info.external_url) if user_info.external_url else None,
+                    "is_master": False,
+                })
+                return 1
+            else:
+                print("no ok")
+                return 0 
+
+        except Exception as e:
+            print("no ok")
+            print(f"Erreur: {str(e)}")
+            return 0
+
+            
+            

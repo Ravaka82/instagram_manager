@@ -13,24 +13,29 @@ from .core.instagram_service import InstagramService
 @admin.register(InstagramUser)
 class InstagramUserAdmin(admin.ModelAdmin):
     fields = ['username','password','name', 'profile_picture', 'bio', 'bio_link', 'is_master']
-    list_display = ['username', 'name','bio', 'is_master', 'profile_picture_display']
-    actions = ['update_instagram_account']
+    list_display = ['username', 'name','bio', 'is_master', 'profile_picture_display','sync_button']
+    actions = ['update_instagram_account','sync_instagram_account']
     search_fields = ['name', 'username']
 
+    #getAttributs
     def get_fields(self, request, obj=None):
         if obj is None: 
             return self.fields
         return [field for field in self.fields if field not in ['username', 'password']] 
+    
+    #initial_val_is_master ou compte maitre
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
         initial['is_master'] = True
         return initial
+    
+    #templates_change_list
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         extra_context['add_user_reel_link'] = reverse('admin:add_user_reel')
         return super().changelist_view(request, extra_context=extra_context)
-    from django.utils.html import format_html
-
+    
+    #show_image
     def profile_picture_display(self, obj):
         if obj.profile_picture:
             image_url = str(obj.profile_picture)
@@ -50,7 +55,7 @@ class InstagramUserAdmin(admin.ModelAdmin):
         return "No image"
     profile_picture_display.short_description = 'Profil_picture'
   
-
+    #action_add
     def add_user_reel(self, request):
         if request.method == 'POST':
             username = request.POST.get('username')
@@ -66,7 +71,7 @@ class InstagramUserAdmin(admin.ModelAdmin):
 
         return render(request, 'admin/add_user_reel.html', {})
 
-    
+    #save model add/update
     def save_model(self, request, obj, form, change):
         service = InstagramService()
         try:
@@ -77,7 +82,8 @@ class InstagramUserAdmin(admin.ModelAdmin):
             self.message_user(request, f"❌ Erreur : {e.message}", level=messages.ERROR)
         except Exception as e:
             self.message_user(request, "❌ Une erreur inattendue est survenue.", level=messages.ERROR)
-
+    
+    #action_update
     @admin.action(description="Mettre à jour les comptes Instagram sélectionnés")
     def update_instagram_account(self, request, queryset):
         service = InstagramService()
@@ -90,9 +96,34 @@ class InstagramUserAdmin(admin.ModelAdmin):
             except Exception as e:
                 self.message_user(request, "❌ Une erreur inattendue est survenue.", level=messages.ERROR)
 
+    #url
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
             path('add_user_reel/', self.admin_site.admin_view(self.add_user_reel), name='add_user_reel'),
+            path('sync_instagram_account/<int:user_id>/', self.admin_site.admin_view(self.sync_instagram_account), name='sync_instagram_account'),
         ]
         return custom_urls + urls
+    #button synchro
+    def sync_button(self, obj):
+        print(f"Generating sync button for {obj.username}")  # Débogage
+        return format_html(
+            '<a class="button default" href="{}">Synchroniser 🔄​</a>',
+            reverse('admin:sync_instagram_account', args=[obj.pk])
+        )
+    sync_button.short_description = 'Synchronisation'
+    
+    #action synchro
+    def sync_instagram_account(self, request, user_id):
+        user = InstagramUser.objects.get(pk=user_id)   
+        instagram_service = InstagramService()
+        result_sync = instagram_service.sync_account(user) 
+        if result_sync ==1:
+            self.message_user(request, f"✅ Instagram account '{user.username}' synchronized.", level=messages.SUCCESS)
+        else:
+            self.message_user(request, "❌ Une erreur de synchro inattendue est survenue.", level=messages.ERROR)
+
+        return HttpResponseRedirect(reverse('admin:instagram_instagramuser_changelist'))  # Rediriger vers la liste des utilisateurs
+
+
+    
