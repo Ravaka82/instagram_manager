@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Formulaire de Publication</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f9;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      .form-container {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 600px;
+        box-sizing: border-box;
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 20px;
+      }
+
+      label {
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 8px;
+        display: inline-block;
+      }
+
+      textarea,
+      input[type="file"] {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 16px;
+        box-sizing: border-box;
+        background-color: #fafafa;
+      }
+
+      button {
+        background-color: #007bff;
+        color: white;
+        font-size: 16px;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 100%;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      .form-footer {
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .form-footer a {
+        color: #007bff;
+        text-decoration: none;
+      }
+
+      .form-footer a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="form-container">
+      <h1>Publier une Publication</h1>
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <label for="content">Contenu de la publication</label>
+        <textarea
+          name="content"
+          id="content"
+          rows="4"
+          cols="50"
+          required
+        ></textarea>
+
+        <label for="image">Image de la publication</label>
+        <input type="file" name="image" id="image" accept="image/*" required />
+
+        <button type="submit">Publier</button>
+      </form>
+    </div>
+  </body>
+</html>

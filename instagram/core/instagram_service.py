@@ -1,15 +1,15 @@
-import os,requests
+import os
+import requests
 from django.core.files.storage import default_storage
 from instagrapi import Client
 from django.core.exceptions import ValidationError
 from instagrapi.exceptions import ClientError, TwoFactorRequired
 from tempfile import NamedTemporaryFile
-from instagram.models import InstagramUser
+from instagram.models import InstagramUser,Publication
 
 class InstagramService:
     def __init__(self):
         self.client = Client()
-  
 
     def authenticate(self, username, password, otp=None):
         try:
@@ -53,7 +53,6 @@ class InstagramService:
             print(f"Erreur générale : {e}")
             return 0
 
-         
     def update_account(self, instagram_user):
         name_updated = False  
         profile_picture_updated = False  
@@ -116,7 +115,6 @@ class InstagramService:
             else:
                 print("⚠️ Aucune photo de profil à mettre à jour.")
 
-
             if name_updated or profile_picture_updated:
                 clien_info = self.client.account_info()
                 instagram_user.profile_picture = str(clien_info.profile_pic_url)
@@ -144,3 +142,29 @@ class InstagramService:
             "profile_picture_updated": profile_picture_updated,
             "error_message": messageError
         }
+
+    def publish_post(self, instagram_user, title, description, image_path):
+        try:
+            print("🔑 Connexion à Instagram...")
+            self.client.login(instagram_user.username, instagram_user.password)
+            if not os.path.exists(image_path):
+                raise ValidationError("❌ Le fichier d'image spécifié est introuvable.")
+            media = self.client.photo_upload(image_path, title)
+            print("✅ Publication réussie !")
+            publication = Publication(
+                instagram_user=instagram_user,
+                title=title,
+                description=description,
+                image=image_path,
+                date_posted=media.taken_at, 
+                is_published=True
+            )
+            publication.save()
+            return True
+
+        except Exception as e:
+            print(f"Erreur lors de la publication : {e}")
+            raise ValidationError(f"❌ Erreur de publication : {e}")
+
+
+

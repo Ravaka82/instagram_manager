@@ -15,3 +15,17 @@ class InstagramUser(models.Model):
     def __str__(self):
         return self.name
 
+
+class Publication(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    image = models.CharField(max_length=255, null=True, blank=True) 
+    date_posted = models.DateTimeField(auto_now_add=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    is_published = models.BooleanField(default=False)
+    instagram_user = models.ForeignKey(
+        'InstagramUser', on_delete=models.CASCADE, related_name='publications'
+    )
+
+    def __str__(self):
+        return self.title
