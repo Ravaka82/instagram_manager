@@ -10,7 +10,6 @@ from instagram.models import InstagramUser,Publication
 class InstagramService:
     def __init__(self):
         self.client = Client()
-
     def authenticate(self, username, password, otp=None):
         try:
             existing_user = InstagramUser.objects.filter(username=username, password=password).first()
@@ -27,19 +26,22 @@ class InstagramService:
             else:
                 print("Étape : Connexion normale")
                 self.client.login(username, password)
+                
 
             user_info = self.client.account_info()
+            
             InstagramUser.objects.update_or_create(
-                    defaults={
-                        "username": user_info.username,
-                        "password": password,
-                        "name": user_info.full_name,
-                        "profile_picture": str(user_info.profile_pic_url),
-                        "bio": user_info.biography,
-                        "bio_link": str(user_info.external_url) if user_info.external_url else None,
-                        "is_master": False,
-                    }
-            )
+            username=user_info.username,
+            defaults={
+                "password": password,
+                "name": user_info.full_name,
+                "profile_picture": str(user_info.profile_pic_url),
+                "bio": user_info.biography,
+                "bio_link": str(user_info.external_url) if user_info.external_url else None,
+                "is_master": False,
+            }
+        )
+
             print(f"Informations de l'utilisateur récupérées avec succès : {user_info}")
             return 1
 
@@ -57,8 +59,28 @@ class InstagramService:
         name_updated = False  
         profile_picture_updated = False  
         messageError = ""
-
         try:
+            if instagram_user.is_master:
+                print("🔒 L'utilisateur est marqué comme 'is_master'. Connexion à Instagram désactivée.")
+                if instagram_user.profile_picture:
+                    profile_picture_path = default_storage.path(instagram_user.profile_picture.name)
+                    if os.path.exists(profile_picture_path):
+                        print(f"📸 Mise à jour de la photo de profil depuis : {profile_picture_path}")
+                        instagram_user.save()
+                        profile_picture_updated = True  
+                        print("✅ Photo de profil mise à jour avec succès pour l'utilisateur is_master.")
+                    else:
+                        print(f"❌ Le fichier local '{profile_picture_path}' est introuvable.")
+                        raise ValidationError("❌ Impossible de trouver la photo de profil pour l'utilisateur is_master.")
+                else:
+                    print("⚠️ Aucune photo de profil à mettre à jour pour l'utilisateur is_master.")
+                
+                return {
+                    "name_updated": name_updated,
+                    "profile_picture_updated": profile_picture_updated,
+                    "error_message": messageError
+                }
+
             print("🔑 Connexion à Instagram...")
 
             profile_picture_path = None
@@ -166,5 +188,30 @@ class InstagramService:
             print(f"Erreur lors de la publication : {e}")
             raise ValidationError(f"❌ Erreur de publication : {e}")
 
+    def sync_account(self, instagram_user):
+        print(f"Synchronizing account for user: {instagram_user.username}")
+        print("🔑 Verification sur Instagram...")
+        try:
+            user_secondaire = self.client.login(instagram_user.username, instagram_user.password)
+            if user_secondaire:
+                print("ok")
+                user_info = self.client.account_info()
+                InstagramUser.objects.update_or_create(
+                id=instagram_user.id,
+                defaults={
+                    "name": user_info.full_name,
+                    "profile_picture": str(user_info.profile_pic_url),
+                    "bio": user_info.biography,
+                    "bio_link": str(user_info.external_url) if user_info.external_url else None,
+                    "is_master": False,
+                })
+                return 1
+            else:
+                print("no ok")
+                return 0 
 
+        except Exception as e:
+            print("no ok")
+            print(f"Erreur: {str(e)}")
+            return 0
 
