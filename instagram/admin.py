@@ -159,7 +159,7 @@ class InstagramUserAdmin(admin.ModelAdmin):
         
         ]
         return custom_urls + urls
-     
+    
     def sync_button(self, obj):
         print(f"Generating sync button for {obj.username}")  # Débogage
         return format_html(
@@ -179,4 +179,4 @@ class InstagramUserAdmin(admin.ModelAdmin):
 
         return HttpResponseRedirect(reverse('admin:instagram_instagramuser_changelist'))  # Rediriger vers la liste des utilisateurs
     
-    admin.site.register(InstagramUser, InstagramUserAdmin)
+
