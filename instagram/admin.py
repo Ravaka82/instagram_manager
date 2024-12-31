@@ -39,10 +39,20 @@ class InstagramUserAdmin(admin.ModelAdmin):
     
     def profile_picture_display(self, obj):
         if obj.profile_picture:
-            return format_html(
-                '<img src="{}" style="border-radius: 50%; width: 50px; height: 50px;" />',
-                obj.profile_picture.url
-            )
+            image_url = str(obj.profile_picture)
+            if image_url.startswith('http') or image_url.startswith('https'):
+                return format_html(
+                    '<img src="{}" style="border-radius: 50%; width: 50px; height: 50px;" />',
+                    image_url
+                )
+            try:
+                return format_html(
+                    '<img src="{}" style="border-radius: 50%; width: 50px; height: 50px;" />',
+                    obj.profile_picture.url
+                )
+            except ValueError:
+                return "Invalid image URL"
+        
         return "No image"
 
     profile_picture_display.short_description = 'Profile Picture'
@@ -95,22 +105,7 @@ class InstagramUserAdmin(admin.ModelAdmin):
             'instagram_user': instagram_user
         })
 
-        image_url = str(obj.profile_picture)
-        if image_url.startswith('http') or image_url.startswith('https'):
-            return format_html(
-                    '<img src="{}" style="border-radius: 50%; width: 50px; height: 50px;" />',
-                    image_url
-            )
-            try:
-                return format_html(
-                    '<img src="{}" style="border-radius: 50%; width: 50px; height: 50px;" />',
-                    obj.profile_picture.url
-                )
-            except ValueError:
-                return "Invalid image URL"
-        
-        return "No image"
-    profile_picture_display.short_description = 'Profil_picture'
+      
   
     def add_user_reel(self, request):
         if request.method == 'POST':
@@ -162,21 +157,34 @@ class InstagramUserAdmin(admin.ModelAdmin):
     
     def sync_button(self, obj):
         print(f"Generating sync button for {obj.username}")  # Débogage
-        return format_html(
-            '<a class="button default" href="{}">Synchroniser 🔄​</a>',
-            reverse('admin:sync_instagram_account', args=[obj.pk])
-        )
+        if obj.is_master==True:
+            return format_html(
+                '<a class="button default" href="{}">Synchroniser 🔄​</a>',
+                reverse('admin:sync_instagram_account', args=[obj.pk])
+            )
+        return "❌"
     sync_button.short_description = 'Synchronisation'
     
     def sync_instagram_account(self, request, user_id):
         user = InstagramUser.objects.get(pk=user_id)   
-        instagram_service = InstagramService()
-        result_sync = instagram_service.sync_account(user) 
-        if result_sync ==1:
-            self.message_user(request, f"✅ Instagram account '{user.username}' synchronized.", level=messages.SUCCESS)
-        else:
-            self.message_user(request, "❌ Une erreur de synchro inattendue est survenue.", level=messages.ERROR)
+        #instagram_service = InstagramService()
+        #result_sync = instagram_service.sync_account(user) 
+        #if result_sync ==1:
+            #self.message_user(request, f"✅ Instagram account '{user.username}' synchronized.", level=messages.SUCCESS)
+        #else:
+            #self.message_user(request, "❌ Une erreur de synchro inattendue est survenue.", level=messages.ERROR)
 
-        return HttpResponseRedirect(reverse('admin:instagram_instagramuser_changelist'))  # Rediriger vers la liste des utilisateurs
+        non_master_users = InstagramUser.objects.filter(is_master=False)  # Récupérer les comptes non maîtres
+    
+        context = {
+            'title': 'Synchronisation du compte Instagram',
+            'compte_maitre': user,
+            'compte_secondaire': non_master_users,
+            'opts': self.model._meta,
+            'app_label': self.model._meta.app_label,
+        }
+        
+        return render(request, 'admin/synchro.html', context)  
+
     
 
