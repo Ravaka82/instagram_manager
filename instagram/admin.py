@@ -35,6 +35,7 @@ class InstagramUserAdmin(admin.ModelAdmin):
     
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
+        extra_context['add_user_reel_link'] = reverse('admin:add_user_reel')
         return super().changelist_view(request, extra_context=extra_context)
     
     def profile_picture_display(self, obj):
