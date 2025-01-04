@@ -10,19 +10,22 @@
       <th>Username</th>
       <th>Name</th>
       <th>Bio</th>
+      <th>Profile picture</th>
     </tr>
     <tr>
       <td>{{ compte_maitre.id }}</td>
       <td>{{ compte_maitre.username }}</td>
       <td>{{ compte_maitre.name }}</td>
       <td>{{ compte_maitre.bio }}</td>
+      <td><img src="{{ compte_maitre.profile_picture.url }}" style="border-radius: 50%; width: 50px; height: 50px;" /></td>
     </tr>
   </table>
   <br>
 
   <h3>📋 <strong>Liste des comptes non maîtres :</strong></h3>
-  <form method="POST" action="">
+  <form method="POST" action="{% url 'admin:sync_selected_accounts' %}">
     {% csrf_token %}
+    <input type="hidden" name="compte_maitre_id" value="{{ compte_maitre.id }}" >
     <table>
       <thead>
         <tr>
@@ -31,6 +34,7 @@
           <th>Username</th>
           <th>Name</th>
           <th>Bio</th>
+          <th>Profile picture</th>
         </tr>
       </thead>
       <tbody>
@@ -43,6 +47,7 @@
           <td>{{ user.username }}</td>
           <td>{{ user.name }}</td>
           <td>{{ user.bio }}</td>
+          <td><img src="{{ user.profile_picture }}" style="border-radius: 50%; width: 50px; height: 50px;" /></td>
         </tr>
         {% empty %}
         <tr>
@@ -53,7 +58,7 @@
     </table>
     <br>
     <center><button type="submit" class="btn btn-success">✅ Synchroniser</button><center><br>
-    <a href="{% url 'admin:instagram_instagramuser_changelist' %}" class="button button-secondary">🔙 Retour</a>
+    <a href="{% url 'admin:instagram_instagramuser_changelist' %}" class="button button-secondary">Retour 🔙</a>
   </form>
 </div>
 

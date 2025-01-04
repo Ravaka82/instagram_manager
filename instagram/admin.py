@@ -192,7 +192,7 @@ class InstagramUserAdmin(admin.ModelAdmin):
             instagram_service = InstagramService()
             result_sync = instagram_service.sync_account(compte_maitre_id,selected_ids) 
             if result_sync ==1:
-                self.message_user(request, f"✅ IDs sélectionnés : {', '.join(selected_ids)}", level=messages.SUCCESS)
+                self.message_user(request, f"✅ Instagram account synchronized.", level=messages.SUCCESS)
             else:
                 self.message_user(request, "❌ Une erreur de synchro inattendue est survenue.", level=messages.ERROR)
             #print("IDs sélectionnés :", selected_ids)  # Affiche les ID dans la console Django

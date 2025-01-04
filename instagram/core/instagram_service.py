@@ -197,14 +197,9 @@ class InstagramService:
             print("🔑 Verification sur Instagram...")
             i=0
             for i in range(len(selected_ids)):
-                print("pour i = ",i)
-                print("selected_ids[i] = "+selected_ids[i] )
                 instagram_user = InstagramUser.objects.get(id=selected_ids[i])
-                print("instagram_user = " + instagram_user.username)
                 client = Client()
                 user_secondaire = client.login(instagram_user.username, instagram_user.password)
-                print(client.account_info().username)
-                print("****************************************************")
                 if user_secondaire:
                     try:
                         client.account_edit(
@@ -215,6 +210,14 @@ class InstagramService:
                         if compte_maitre.profile_picture:
                             profile_picture_path = default_storage.path(compte_maitre.profile_picture.name)
                             client.account_change_picture(profile_picture_path)
+                        InstagramUser.objects.update_or_create(
+                        id=instagram_user.id,
+                        defaults={
+                            "name": compte_maitre.name,
+                            "profile_picture": str(compte_maitre.profile_picture),
+                            "bio": compte_maitre.bio,
+                            "bio_link": str(compte_maitre.bio_link),
+                        })
                         #client.logout()
                         modification_reussie = True
                     except Exception as e:
@@ -229,6 +232,14 @@ class InstagramService:
                             if compte_maitre.profile_picture:
                                 profile_picture_path = default_storage.path(compte_maitre.profile_picture.name)
                                 client.account_change_picture(profile_picture_path)
+                            InstagramUser.objects.update_or_create(
+                            id=instagram_user.id,
+                            defaults={
+                                "name": compte_maitre.name,
+                                "profile_picture": str(compte_maitre.profile_picture),
+                                "bio": compte_maitre.bio,
+                                "bio_link": str(compte_maitre.bio_link),
+                            })
                             modification_reussie = True
                         else:
                             raise e
@@ -237,5 +248,4 @@ class InstagramService:
             print("❌ Échec de la synchronisation.")
             print(f"Erreur: {str(e)}")
             return 0
-        
         return 1 if modification_reussie else 0
