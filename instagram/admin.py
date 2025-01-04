@@ -19,7 +19,7 @@ from tempfile import NamedTemporaryFile
 @admin.register(InstagramUser)
 class InstagramUserAdmin(admin.ModelAdmin):
     fields = ['username','password','name', 'profile_picture', 'bio', 'bio_link', 'is_master']
-    list_display = ['username', 'name', 'password', 'is_master', 'profile_picture_display','sync_button','publish_button']
+    list_display = ['username', 'name', 'password', 'bio','is_master', 'profile_picture_display','sync_button','publish_button']
     actions = ['update_instagram_account','sync_instagram_account']
 
     search_fields = ['name', 'username']
@@ -152,12 +152,11 @@ class InstagramUserAdmin(admin.ModelAdmin):
             path('add_user_reel/', self.admin_site.admin_view(self.add_user_reel), name='add_user_reel'),
             path('publication_content_form/<int:user_id>/', self.admin_site.admin_view(self.publication_content_form), name='publication_content_form'),
             path('sync_instagram_account/<int:user_id>/', self.admin_site.admin_view(self.sync_instagram_account), name='sync_instagram_account'),
-        
+            path('sync_selected_accounts/', self.admin_site.admin_view(self.sync_selected_accounts), name='sync_selected_accounts'),
         ]
         return custom_urls + urls
     
     def sync_button(self, obj):
-        print(f"Generating sync button for {obj.username}")  # Débogage
         if obj.is_master==True:
             return format_html(
                 '<a class="button default" href="{}">Synchroniser 🔄​</a>',
@@ -186,6 +185,18 @@ class InstagramUserAdmin(admin.ModelAdmin):
         }
         
         return render(request, 'admin/synchro.html', context)  
-
+    def sync_selected_accounts(self, request):
+        if request.method == 'POST':
+            compte_maitre_id = request.POST.get('compte_maitre_id')
+            selected_ids = request.POST.getlist('selected_accounts')
+            instagram_service = InstagramService()
+            result_sync = instagram_service.sync_account(compte_maitre_id,selected_ids) 
+            if result_sync ==1:
+                self.message_user(request, f"✅ IDs sélectionnés : {', '.join(selected_ids)}", level=messages.SUCCESS)
+            else:
+                self.message_user(request, "❌ Une erreur de synchro inattendue est survenue.", level=messages.ERROR)
+            #print("IDs sélectionnés :", selected_ids)  # Affiche les ID dans la console Django
+            #self.message_user(request, f"✅ IDs sélectionnés : {', '.join(selected_ids)}", level=messages.SUCCESS)
+        return HttpResponseRedirect('..')
     
 

@@ -188,30 +188,54 @@ class InstagramService:
             print(f"Erreur lors de la publication : {e}")
             raise ValidationError(f"❌ Erreur de publication : {e}")
 
-    def sync_account(self, instagram_user):
-        print(f"Synchronizing account for user: {instagram_user.username}")
-        print("🔑 Verification sur Instagram...")
+    def sync_account(self, compte_maitre_id, selected_ids):
+        print(f"Compte maitre : {compte_maitre_id}")
+        print(f"Synchronizing account for user: {selected_ids}")
+        modification_reussie = False
         try:
-            user_secondaire = self.client.login(instagram_user.username, instagram_user.password)
-            if user_secondaire:
-                print("ok")
-                user_info = self.client.account_info()
-                InstagramUser.objects.update_or_create(
-                id=instagram_user.id,
-                defaults={
-                    "name": user_info.full_name,
-                    "profile_picture": str(user_info.profile_pic_url),
-                    "bio": user_info.biography,
-                    "bio_link": str(user_info.external_url) if user_info.external_url else None,
-                    "is_master": False,
-                })
-                return 1
-            else:
-                print("no ok")
-                return 0 
-
+            compte_maitre = InstagramUser.objects.get(id=compte_maitre_id)
+            print("🔑 Verification sur Instagram...")
+            i=0
+            for i in range(len(selected_ids)):
+                print("pour i = ",i)
+                print("selected_ids[i] = "+selected_ids[i] )
+                instagram_user = InstagramUser.objects.get(id=selected_ids[i])
+                print("instagram_user = " + instagram_user.username)
+                client = Client()
+                user_secondaire = client.login(instagram_user.username, instagram_user.password)
+                print(client.account_info().username)
+                print("****************************************************")
+                if user_secondaire:
+                    try:
+                        client.account_edit(
+                            full_name=compte_maitre.name,
+                            biography=compte_maitre.bio,
+                            external_url=compte_maitre.bio_link
+                        )
+                        if compte_maitre.profile_picture:
+                            profile_picture_path = default_storage.path(compte_maitre.profile_picture.name)
+                            client.account_change_picture(profile_picture_path)
+                        #client.logout()
+                        modification_reussie = True
+                    except Exception as e:
+                        error_message = str(e)
+                        print(f"Erreur lors de la modification du nom : {error_message}")
+                        if "changed it twice within 14 days" in error_message:
+                            print("⚠️ Limitation détectée : Mise à jour uniquement de la biographie, du lien externe et de la photo de profil.")
+                            client.account_edit(
+                                biography=compte_maitre.bio,
+                                external_url=compte_maitre.bio_link
+                            )
+                            if compte_maitre.profile_picture:
+                                profile_picture_path = default_storage.path(compte_maitre.profile_picture.name)
+                                client.account_change_picture(profile_picture_path)
+                            modification_reussie = True
+                        else:
+                            raise e
+            
         except Exception as e:
-            print("no ok")
+            print("❌ Échec de la synchronisation.")
             print(f"Erreur: {str(e)}")
             return 0
-
+        
+        return 1 if modification_reussie else 0
