@@ -185,7 +185,7 @@ class InstagramUserAdmin(admin.ModelAdmin):
         non_master_users = InstagramUser.objects.filter(is_master=False)  # Récupérer les comptes non maîtres
     
         context = {
-            'title': 'Synchronisation du compte Instagram',
+            'title': 'Instagram account synchronization',
             'compte_maitre': user,
             'compte_secondaire': non_master_users,
             'opts': self.model._meta,

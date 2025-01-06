@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="module">
-  <h3>📝 <strong>Compte sélectionné :</strong></h3>
+  <h3>📝 <strong> Selected master account :</strong></h3>
   <table>
     <tr>
       <th>ID</th>
@@ -22,7 +22,7 @@
   </table>
   <br>
 
-  <h3>📋 <strong>Liste des comptes non maîtres :</strong></h3>
+  <h3>📋 <strong>List of secondary accounts :</strong></h3>
   <form method="POST" action="{% url 'admin:sync_selected_accounts' %}">
     {% csrf_token %}
     <input type="hidden" name="compte_maitre_id" value="{{ compte_maitre.id }}" >
@@ -51,14 +51,14 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="5">Aucun compte non maître trouvé.</td>
+          <td colspan="5">No secondary account found.</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     <br>
-    <center><button type="submit" class="btn btn-success">✅ Synchroniser</button><center><br>
-    <a href="{% url 'admin:instagram_instagramuser_changelist' %}" class="button button-secondary">Retour 🔙</a>
+    <center><button type="submit" class="btn btn-success">✅ Synchronize</button><center><br>
+    <a href="{% url 'admin:instagram_instagramuser_changelist' %}" class="button button-secondary">Back 🔙</a>
   </form>
 </div>
 
