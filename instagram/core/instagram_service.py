@@ -156,8 +156,6 @@ class InstagramService:
                 print("⚠️ Aucune photo de profil à mettre à jour.")
 
             if name_updated or profile_picture_updated:
-                clien_info = self.client.account_info()
-                instagram_user.profile_picture = str(clien_info.profile_pic_url)
                 instagram_user.save()
                 print("✅ Les informations du compte Instagram ont été mises à jour dans la base de données.")
             else:

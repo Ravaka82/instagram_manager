@@ -47,7 +47,7 @@
           <td>{{ user.username }}</td>
           <td>{{ user.name }}</td>
           <td>{{ user.bio }}</td>
-          <td><img src="{{ user.profile_picture }}" style="border-radius: 50%; width: 50px; height: 50px;" /></td>
+          <td><img src="{{ user.profile_picture.url }}" style="border-radius: 50%; width: 50px; height: 50px;" /></td>
         </tr>
         {% empty %}
         <tr>
