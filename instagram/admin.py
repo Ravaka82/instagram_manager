@@ -19,10 +19,17 @@ from tempfile import NamedTemporaryFile
 @admin.register(InstagramUser)
 class InstagramUserAdmin(admin.ModelAdmin):
     fields = ['username','password','name', 'profile_picture', 'bio', 'bio_link', 'is_master']
-    list_display = ['username', 'name', 'password', 'bio','is_master', 'profile_picture_display','sync_button','publish_button']
+    list_display = ['username', 'password','name', 'bio','is_master_display', 'is_master','profile_picture_display','sync_button','publish_button']
     actions = ['update_instagram_account','sync_instagram_account']
 
     search_fields = ['name', 'username']
+    def is_master_display(self,obj):
+        if obj.is_master == True:
+            return "Master Account"
+        else:
+            return "Secondary Account"
+    is_master_display.short_description = 'Type of account'
+
     def get_fields(self, request, obj=None):
         if obj is None: 
             return self.fields
@@ -42,9 +49,10 @@ class InstagramUserAdmin(admin.ModelAdmin):
         if obj.profile_picture:
             image_url = str(obj.profile_picture)
             if image_url.startswith('http') or image_url.startswith('https'):
+                proxy_url = reverse('proxy_instagram_image') + f'?url={image_url}'
                 return format_html(
                     '<img src="{}" style="border-radius: 50%; width: 50px; height: 50px;" />',
-                    image_url
+                    proxy_url
                 )
             try:
                 return format_html(
@@ -55,7 +63,6 @@ class InstagramUserAdmin(admin.ModelAdmin):
                 return "Invalid image URL"
         
         return "No image"
-
     profile_picture_display.short_description = 'Profile Picture'
 
     def publish_button(self, obj):

@@ -1,4 +1,4 @@
-import os
+import os,io
 import requests
 from django.core.files.storage import default_storage
 from instagrapi import Client
@@ -6,7 +6,8 @@ from django.core.exceptions import ValidationError
 from instagrapi.exceptions import ClientError, TwoFactorRequired
 from tempfile import NamedTemporaryFile
 from instagram.models import InstagramUser,Publication
-
+from django.core.files.base import ContentFile
+from PIL import Image
 class InstagramService:
     def __init__(self):
         self.client = Client()
@@ -16,7 +17,7 @@ class InstagramService:
             if existing_user:
                 print("🔑 Connexion avec un utilisateur existant...")
                 return 2  
-            
+
             print("🔑 Connexion à Instagram...")
             if otp:
                 print("Étape : Connexion avec OTP")
@@ -26,24 +27,41 @@ class InstagramService:
             else:
                 print("Étape : Connexion normale")
                 self.client.login(username, password)
-                
 
             user_info = self.client.account_info()
-            
-            InstagramUser.objects.update_or_create(
-            username=user_info.username,
-            defaults={
-                "password": password,
-                "name": user_info.full_name,
-                "profile_picture": str(user_info.profile_pic_url),
-                "bio": user_info.biography,
-                "bio_link": str(user_info.external_url) if user_info.external_url else None,
-                "is_master": False,
-            }
-        )
+            profile_picture_url = str(user_info.profile_pic_url)
+            response = requests.get(profile_picture_url)
+            if response.status_code == 200:
+                image_name = profile_picture_url.split("/")[-1]
+                max_length = 100
+                if len(image_name) > max_length:
+                    image_name = image_name[:max_length]
+                try:
+                    image = Image.open(io.BytesIO(response.content))
+                    image.verify()  
+                except (IOError, SyntaxError) as e:
+                    print(f"Erreur : Fichier non valide ou non image. {e}")
+                    return 4  
+                image = Image.open(io.BytesIO(response.content))
+                image = image.convert("RGB") 
+                jpg_image_io = io.BytesIO()
+                image.save(jpg_image_io, format="JPEG")
+                jpg_image_io.seek(0) 
+                image_file = ContentFile(jpg_image_io.read(), name=image_name.split('.')[0] + '.jpg')
+                instagram_user = InstagramUser.objects.update_or_create(
+                    username=user_info.username,
+                    defaults={
+                        "password": password,
+                        "name": user_info.full_name,
+                        "profile_picture": image_file,
+                        "bio": user_info.biography,
+                        "bio_link": str(user_info.external_url) if user_info.external_url else None,
+                        "is_master": False,
+                    }
+                )
 
-            print(f"Informations de l'utilisateur récupérées avec succès : {user_info}")
-            return 1
+                print(f"Informations de l'utilisateur récupérées avec succès : {user_info}")
+                return 1
 
         except TwoFactorRequired:
             print("Erreur : Code OTP requis ou incorrect.")
