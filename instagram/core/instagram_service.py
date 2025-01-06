@@ -49,8 +49,8 @@ class InstagramService:
             print("Erreur : Code OTP requis ou incorrect.")
             return 0
         except ClientError:
-            print("Erreur : Nom d'utilisateur ou mot de passe incorrect.")
-            return 0
+            print("Erreur : Nom d'utilisateur ou mot de passe incorrect. ou bien compte incorrecte")
+            return 3
         except Exception as e:
             print(f"Erreur générale : {e}")
             return 0
