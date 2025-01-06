@@ -49,10 +49,9 @@ class InstagramUserAdmin(admin.ModelAdmin):
         if obj.profile_picture:
             image_url = str(obj.profile_picture)
             if image_url.startswith('http') or image_url.startswith('https'):
-                proxy_url = reverse('proxy_instagram_image') + f'?url={image_url}'
                 return format_html(
                     '<img src="{}" style="border-radius: 50%; width: 50px; height: 50px;" />',
-                    proxy_url
+                    image_url
                 )
             try:
                 return format_html(
