@@ -1,40 +1,50 @@
-<!DOCTYPE html>
-<html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Formulaire de Publication</title>
+    {% extends "admin/base_site.html" %}
+    {% load static %}
+    
+    {% block content %}
+    <div class="form-container">
+      <h1>Publier une Publication</h1>
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <label for="content">Contenu de la publication</label>
+        <textarea
+          name="content"
+          id="content"
+          rows="4"
+          cols="50"
+          required
+        ></textarea>
+
+        <label for="image">Image de la publication</label>
+        <input type="file" name="image" id="image" accept="image/*" required />
+
+        <button type="submit">Publier</button>
+        <br><br>
+       
+        <a href="{% url 'admin:instagram_instagramuser_changelist' %}" class="button button-secondary">Retour 🔙</a>
+      </form>
+    </div>
+
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f9;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-      }
 
       .form-container {
-        background-color: #fff;
         padding: 20px;
         border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        width: 100%;
-        max-width: 600px;
         box-sizing: border-box;
+        border: 1px solid #ddd;
+        width: 50%;
+        margin-left: 25%;
+        margin-right: 25%;
       }
 
       h1 {
         text-align: center;
-        color: #333;
         margin-bottom: 20px;
       }
 
       label {
         font-weight: bold;
-        color: #333;
         margin-bottom: 8px;
         display: inline-block;
       }
@@ -48,7 +58,6 @@
         border-radius: 8px;
         font-size: 16px;
         box-sizing: border-box;
-        background-color: #fafafa;
       }
 
       button {
@@ -72,7 +81,6 @@
       }
 
       .form-footer a {
-        color: #007bff;
         text-decoration: none;
       }
 
@@ -80,27 +88,4 @@
         text-decoration: underline;
       }
     </style>
-  </head>
-  <body>
-    <div class="form-container">
-      <h1>Publier une Publication</h1>
-      <form method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-
-        <label for="content">Contenu de la publication</label>
-        <textarea
-          name="content"
-          id="content"
-          rows="4"
-          cols="50"
-          required
-        ></textarea>
-
-        <label for="image">Image de la publication</label>
-        <input type="file" name="image" id="image" accept="image/*" required />
-
-        <button type="submit">Publier</button>
-      </form>
-    </div>
-  </body>
-</html>
+    {% endblock %}
