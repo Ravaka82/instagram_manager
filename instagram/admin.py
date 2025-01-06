@@ -66,11 +66,11 @@ class InstagramUserAdmin(admin.ModelAdmin):
 
     def publish_button(self, obj):
         return format_html(
-            '<a class="button" href="{}"> Faire une publication </a>',
+            '<a class="button" href="{}"> Post 📝​</a>',
             reverse('admin:publication_content_form', args=[obj.id])
         )
 
-    publish_button.short_description = 'Publier la publication'
+    publish_button.short_description = 'Publish the post'
     publish_button.allow_tags = True
 
     def publication_content_form(self, request, user_id=None):
@@ -167,11 +167,11 @@ class InstagramUserAdmin(admin.ModelAdmin):
     def sync_button(self, obj):
         if obj.is_master==True:
             return format_html(
-                '<a class="button default" href="{}">Synchroniser 🔄​</a>',
+                '<a class="button default" href="{}">Synchronize 🔄​</a>',
                 reverse('admin:sync_instagram_account', args=[obj.pk])
             )
         return "❌"
-    sync_button.short_description = 'Synchronisation'
+    sync_button.short_description = 'Synchronization'
     
     def sync_instagram_account(self, request, user_id):
         user = InstagramUser.objects.get(pk=user_id)   

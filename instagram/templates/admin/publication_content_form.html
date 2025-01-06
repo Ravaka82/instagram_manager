@@ -3,11 +3,11 @@
     
     {% block content %}
     <div class="form-container">
-      <h1>Publier une Publication</h1>
+      <h1>Publish a post</h1>
       <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
 
-        <label for="content">Contenu de la publication</label>
+        <label for="content">Post content</label>
         <textarea
           name="content"
           id="content"
@@ -16,10 +16,10 @@
           required
         ></textarea>
 
-        <label for="image">Image de la publication</label>
+        <label for="image">Image</label>
         <input type="file" name="image" id="image" accept="image/*" required />
 
-        <button type="submit">Publier</button>
+        <button type="submit">Publish</button>
         <br><br>
        
         <a href="{% url 'admin:instagram_instagramuser_changelist' %}" class="button button-secondary">Back 🔙</a>
