@@ -5,9 +5,14 @@ from instagrapi import Client
 from django.core.exceptions import ValidationError
 from instagrapi.exceptions import ClientError, TwoFactorRequired
 from tempfile import NamedTemporaryFile
-from instagram.models import InstagramUser,Publication
+from instagram.models import InstagramUser, Publication
+from apscheduler.schedulers.background import BackgroundScheduler
 from django.core.files.base import ContentFile
+from datetime import datetime
+from django.utils import timezone
+from django.utils.timezone import make_aware
 from PIL import Image
+
 class InstagramService:
     def __init__(self):
         self.client = Client()
@@ -181,28 +186,71 @@ class InstagramService:
             "error_message": messageError
         }
 
-    def publish_post(self, instagram_user, title, description, image_path):
+    def publish_post(self, instagram_user, title, description, image, scheduled_time=None):
+        try:
+    
+            if scheduled_time and isinstance(scheduled_time, str):
+                scheduled_time = datetime.fromisoformat(scheduled_time)
+                if scheduled_time.tzinfo is not None:
+                    scheduled_time = timezone.make_naive(scheduled_time)
+
+          
+            current_time = timezone.now()
+            
+            scheduled_at = timezone.make_aware(scheduled_time) if scheduled_time else current_time
+
+         
+            publication = Publication.objects.create(
+                title=title,
+                description=description,
+                image=image,
+                date_posted=current_time, 
+                scheduled_at=scheduled_at,
+                is_published=False, 
+                instagram_user=instagram_user
+            )
+
+   
+            print(f"Publication créée : Title: {title}, Description: {description}, Scheduled At: {scheduled_at}")
+
+            if scheduled_time:
+                # Planifier la publication à l'heure spécifiée
+                self.scheduler.add_job(
+                    self._publish_now, 'date', run_date=scheduled_at,
+                    args=[instagram_user, title, description, image, publication.id]
+                )
+                print(f"✅ Publication planifiée pour {scheduled_at} !")
+            else:
+                # Publier immédiatement
+                self._publish_now(instagram_user, title, description, image, publication.id)
+
+        except Exception as e:
+            print(f"Erreur lors de la publication : {str(e)}")
+            raise ValidationError(f"❌ Erreur de publication : {str(e)}")
+
+    def _publish_now(self, instagram_user, title, description, image, publication_id):
         try:
             print("🔑 Connexion à Instagram...")
             self.client.login(instagram_user.username, instagram_user.password)
-            if not os.path.exists(image_path):
+
+            if not os.path.exists(image):
                 raise ValidationError("❌ Le fichier d'image spécifié est introuvable.")
-            media = self.client.photo_upload(image_path, title)
-            print("✅ Publication réussie !")
-            publication = Publication(
-                instagram_user=instagram_user,
-                title=title,
-                description=description,
-                image=image_path,
-                date_posted=media.taken_at, 
-                is_published=True
-            )
+
+
+            media = self.client.photo_upload(image, title)
+            print("✅ Publication réussie sur Instagram !")
+
+        
+            publication = Publication.objects.get(id=publication_id)
+            publication.is_published = True
+            publication.published_at = timezone.now()
             publication.save()
-            return True
+
+            print(f"✅ Publication mise à jour dans la base de données avec succès.")
 
         except Exception as e:
-            print(f"Erreur lors de la publication : {e}")
-            raise ValidationError(f"❌ Erreur de publication : {e}")
+            print(f"Erreur lors de la publication sur Instagram : {str(e)}")
+            raise ValidationError(f"❌ Erreur de publication sur Instagram : {str(e)}")
 
     def sync_account(self, compte_maitre_id, selected_ids):
         print(f"Compte maitre : {compte_maitre_id}")

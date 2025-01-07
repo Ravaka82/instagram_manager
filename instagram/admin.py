@@ -88,7 +88,7 @@ class InstagramUserAdmin(admin.ModelAdmin):
                 self.message_user(request, "❌ Aucune image sélectionnée.", level=messages.ERROR)
                 return HttpResponseRedirect('..')
 
-            file_path = os.path.join('media/uploads/', image.name)
+            file_path = os.path.join('media/', image.name)
             try:
                 with open(file_path, 'wb') as f:
                     for chunk in image.chunks():
