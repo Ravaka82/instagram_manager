@@ -28,6 +28,8 @@ class Publication(models.Model):
     instagram_user = models.ForeignKey(
         InstagramUser, on_delete=models.CASCADE, related_name='publication'
     )
+    class Meta:
+        db_table = 'Publication'
 
     def save(self, *args, **kwargs):
         if self.scheduled_at and self.scheduled_at.tzinfo is not None:

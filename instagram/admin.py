@@ -83,7 +83,8 @@ class InstagramUserAdmin(admin.ModelAdmin):
         if request.method == 'POST':
             content = request.POST.get('content')
             image = request.FILES.get('image')
-
+            schedule = request.POST.get('schedule')
+            print("schedule : ",schedule)
             if not image:
                 self.message_user(request, "❌ Aucune image sélectionnée.", level=messages.ERROR)
                 return HttpResponseRedirect('..')
@@ -99,15 +100,17 @@ class InstagramUserAdmin(admin.ModelAdmin):
 
             instagram_service = InstagramService()
             try:
-                instagram_service.publish_post(instagram_user, content, content, file_path)
-                self.message_user(request, "✅ Publication réussie!", level=messages.SUCCESS)
+                
+                result = instagram_service.publish_post(instagram_user, content, content, file_path,schedule)
+                if result==1:
+                    self.message_user(request, "✅ Publication success!", level=messages.SUCCESS)
+                if result==0:
+                    self.message_user(request, "❌ Publication failed!", level=messages.ERROR)
                 os.remove(file_path) 
             except Exception as e:
                 self.message_user(request, f"❌ Erreur lors de la publication : {str(e)}", level=messages.ERROR)
                 os.remove(file_path)
-
             return HttpResponseRedirect('..')
-
         return render(request, 'admin/publication_content_form.html', {
             'instagram_user': instagram_user
         })

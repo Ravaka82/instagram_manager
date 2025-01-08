@@ -1,4 +1,4 @@
-import os,io
+import os,io,time
 import requests
 from django.core.files.storage import default_storage
 from instagrapi import Client
@@ -8,9 +8,7 @@ from tempfile import NamedTemporaryFile
 from instagram.models import InstagramUser, Publication
 from apscheduler.schedulers.background import BackgroundScheduler
 from django.core.files.base import ContentFile
-from datetime import datetime
-from django.utils import timezone
-from django.utils.timezone import make_aware
+from datetime import datetime,timezone,timedelta
 from PIL import Image
 
 class InstagramService:
@@ -186,49 +184,48 @@ class InstagramService:
             "error_message": messageError
         }
 
-    def publish_post(self, instagram_user, title, description, image, scheduled_time=None):
+    def publish_post(self, instagram_user, title, description, image, scheduled_time):
         try:
-    
-            if scheduled_time and isinstance(scheduled_time, str):
-                scheduled_time = datetime.fromisoformat(scheduled_time)
-                if scheduled_time.tzinfo is not None:
-                    scheduled_time = timezone.make_naive(scheduled_time)
-
-          
-            current_time = timezone.now()
-            
-            scheduled_at = timezone.make_aware(scheduled_time) if scheduled_time else current_time
-
-         
-            publication = Publication.objects.create(
-                title=title,
-                description=description,
-                image=image,
-                date_posted=current_time, 
-                scheduled_at=scheduled_at,
-                is_published=False, 
-                instagram_user=instagram_user
-            )
-
-   
-            print(f"Publication créée : Title: {title}, Description: {description}, Scheduled At: {scheduled_at}")
-
+            print("publish...")
+            print("----------------------")
+            publication_time=None
             if scheduled_time:
+                print("scheduled_time : ",scheduled_time)
+                dt = datetime.strptime(scheduled_time, "%Y-%m-%dT%H:%M")
+
+                # Ajuster l'heure (par exemple, soustraire 47 minutes)
+                dt_adjusted = dt - timedelta(minutes=0)
+
+                # Formater dans le format souhaité
+                publication_time_str = dt_adjusted.strftime("%Y-%m-%d %H:%M:%S+00:00")
+                print("publication_time_str : ",publication_time_str)
+                publication_time = datetime.fromisoformat(publication_time_str)
+                print("publication_time : ",publication_time)
+        
+   
+            print(f"Publication créée : Title: {title}, Description: {description}, Scheduled At: {publication_time}")
+            print("---------------------------------------------------------------------------------------------")
+            if publication_time:
                 # Planifier la publication à l'heure spécifiée
-                self.scheduler.add_job(
-                    self._publish_now, 'date', run_date=scheduled_at,
-                    args=[instagram_user, title, description, image, publication.id]
-                )
-                print(f"✅ Publication planifiée pour {scheduled_at} !")
+                print("iffffffffffffffffffffffffffffffffffffffffff")
+                if self._publish_now(instagram_user, title, description, image,publication_time) ==1:
+                    print(f"✅ Publication planifiée pour {scheduled_time} !")
+                    return 1
+                else:
+                    return 0
             else:
+                print("elseeeeeeeeeeeeeeeeeeeeeeeee")
                 # Publier immédiatement
-                self._publish_now(instagram_user, title, description, image, publication.id)
+                if self._publish_now(instagram_user, title, description, image,publication_time) ==1:
+                    print(f"✅ Publication immédiatement pour {scheduled_time} !")
+                    return 1
+                else:
+                    return 0
 
         except Exception as e:
             print(f"Erreur lors de la publication : {str(e)}")
-            raise ValidationError(f"❌ Erreur de publication : {str(e)}")
 
-    def _publish_now(self, instagram_user, title, description, image, publication_id):
+    def _publish_now(self, instagram_user, title, description, image,publication_time ):
         try:
             print("🔑 Connexion à Instagram...")
             self.client.login(instagram_user.username, instagram_user.password)
@@ -236,20 +233,42 @@ class InstagramService:
             if not os.path.exists(image):
                 raise ValidationError("❌ Le fichier d'image spécifié est introuvable.")
 
-
-            media = self.client.photo_upload(image, title)
+            if publication_time:
+                now = datetime.now(timezone.utc)  # Assurez-vous d'utiliser UTC pour comparer correctement
+                print(f"🕒 Heure actuelle du système : {now}")
+                print(f"🕒 Heure prévue pour la publication : {publication_time}")
+                
+                delay = (publication_time - now).total_seconds()
+                print(f"⏳ Délai avant la publication : {delay} secondes")
+                
+                if delay > 0:
+                    print(f"⏳ Publication planifiée pour {publication_time}")
+                    time.sleep(delay)
+                    self.client.photo_upload(image, title)
+                elif abs(delay) < 5:  # Tolérance de 5 secondes pour éviter les micro-décalages
+                    print("⚠️ Petite différence de timing détectée, publication immédiate.")
+                    self.client.photo_upload(image, title)
+                else:
+                    print(f"⚠️ La date de publication est dans le passé. Veuillez vérifier l'heure.")
+                    return 0
+                    raise ValidationError("⚠️ La date de publication est dans le passé. Veuillez vérifier l'heure.")
+            else:
+                self.client.photo_upload(image, title)
             print("✅ Publication réussie sur Instagram !")
 
-        
-            publication = Publication.objects.get(id=publication_id)
-            publication.is_published = True
-            publication.published_at = timezone.now()
-            publication.save()
-
+            Publication.objects.create(
+                title=title,
+                description=description,
+                image=image,
+                is_published=False, 
+                scheduled_at=publication_time,
+                instagram_user=instagram_user
+            )            
             print(f"✅ Publication mise à jour dans la base de données avec succès.")
-
+            return 1
         except Exception as e:
             print(f"Erreur lors de la publication sur Instagram : {str(e)}")
+            return 0
             raise ValidationError(f"❌ Erreur de publication sur Instagram : {str(e)}")
 
     def sync_account(self, compte_maitre_id, selected_ids):
