@@ -19,8 +19,8 @@ from tempfile import NamedTemporaryFile
 @admin.register(InstagramUser)
 class InstagramUserAdmin(admin.ModelAdmin):
     fields = ['username','password','name', 'profile_picture', 'bio', 'bio_link', 'is_master']
-    list_display = ['username', 'password','name', 'bio','is_master_display', 'is_master','profile_picture_display','sync_button','publish_button']
-    actions = ['update_instagram_account','sync_instagram_account']
+    list_display = ['username', 'password', 'name', 'bio', 'is_master_display', 'is_master', 'profile_picture_display', 'sync_button', 'publish_button', 'show_publications_button']
+    actions = ['update_instagram_account', 'sync_instagram_account']
 
     search_fields = ['name', 'username']
     def is_master_display(self,obj):
@@ -114,9 +114,29 @@ class InstagramUserAdmin(admin.ModelAdmin):
         return render(request, 'admin/publication_content_form.html', {
             'instagram_user': instagram_user
         })
+    
+    def show_publications(self, request, user_id):
+        try:
+            instagram_user = InstagramUser.objects.get(id=user_id)
+            publications = Publication.objects.filter(instagram_user=instagram_user)
+        except InstagramUser.DoesNotExist:
+            self.message_user(request, "❌ Instagram User not found.", level=messages.ERROR)
+            return HttpResponseRedirect('..')
 
-      
-  
+        return render(request, 'admin/show_publications.html', {
+            'instagram_user': instagram_user,
+            'publications': publications
+        })
+
+    def show_publications_button(self, obj):
+        return format_html(
+            '<a class="button" href="{}">Show Publications 📜</a>',
+            reverse('admin:show_publications', args=[obj.id])
+        )
+
+    show_publications_button.short_description = 'Show Publications'
+    show_publications_button.allow_tags = True
+
     def add_user_reel(self, request):
         if request.method == 'POST':
             username = request.POST.get('username')
@@ -164,6 +184,7 @@ class InstagramUserAdmin(admin.ModelAdmin):
             path('publication_content_form/<int:user_id>/', self.admin_site.admin_view(self.publication_content_form), name='publication_content_form'),
             path('sync_instagram_account/<int:user_id>/', self.admin_site.admin_view(self.sync_instagram_account), name='sync_instagram_account'),
             path('sync_selected_accounts/', self.admin_site.admin_view(self.sync_selected_accounts), name='sync_selected_accounts'),
+            path('show_publications/<int:user_id>/', self.admin_site.admin_view(self.show_publications), name='show_publications'),
         ]
         return custom_urls + urls
     

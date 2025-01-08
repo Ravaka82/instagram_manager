@@ -1,0 +1,65 @@
+{% extends "admin/base_site.html" %} {% block content %}
+<div class="container mt-4">
+  <h1 class="mb-4 text-center">Publications for {{ instagram_user.name }}</h1>
+
+  {% if publications %}
+  <div class="table-responsive">
+    <table
+      class="table table-bordered table-striped table-hover mx-auto"
+      style="width: 90%"
+    >
+      <thead class="thead-dark">
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Image</th>
+          <th>Date Posted</th>
+          <th>Scheduled At</th>
+          <th>Published At</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for publication in publications %}
+        <tr>
+          <td>{{ publication.id }}</td>
+          <td>{{ publication.title }}</td>
+          <td>
+            {{ publication.description|default:"No description available" }}
+          </td>
+          <td>
+            {% if publication.image %}
+            <img
+              src="{{ publication.image.url }}"
+              alt="Publication Image"
+              style="width: 100px; height: 100px; object-fit: cover"
+            />
+            {% else %}
+            <span class="text-muted">No image</span>
+            {% endif %}
+          </td>
+          <td>{{ publication.date_posted|date:"d/m/Y H:i" }}</td>
+          <td>{{ publication.scheduled_at|date:"d/m/Y H:i" }}</td>
+          <td>{{ publication.published_at|date:"d/m/Y H:i" }}</td>
+          <td>
+            {{ publication.is_published|yesno:"Published,Not Published" }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-warning">No publications found for this user.</div>
+  {% endif %}
+  <br /><br />
+  <div class="mt-4">
+    <a
+      href="{% url 'admin:instagram_instagramuser_changelist' %}"
+      class="button"
+      >Back to User List</a
+    >
+  </div>
+</div>
+{% endblock %}
