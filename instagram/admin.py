@@ -149,7 +149,7 @@ class InstagramUserAdmin(admin.ModelAdmin):
             if rep_User==2:
                 self.message_user(request, "❌ This Instagram account already exists in the application.", level=messages.ERROR)
             if rep_User==3:
-                self.message_user(request, "❌ Instagram account connection failed.", level=messages.ERROR)
+                self.message_user(request, "❌ Instagram account connection failed.Login or password incorrect", level=messages.ERROR)
             return HttpResponseRedirect('..')
 
         return render(request, 'admin/add_user_reel.html', {})
