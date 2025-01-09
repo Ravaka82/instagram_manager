@@ -1,4 +1,5 @@
 import os,io,time
+from zoneinfo import ZoneInfo
 import requests
 from django.core.files.storage import default_storage
 from instagrapi import Client
@@ -199,7 +200,7 @@ class InstagramService:
                 # Formater dans le format souhaité
                 publication_time_str = dt_adjusted.strftime("%Y-%m-%d %H:%M:%S+00:00")
                 print("publication_time_str : ",publication_time_str)
-                publication_time = datetime.fromisoformat(publication_time_str)
+                publication_time = datetime.fromisoformat(publication_time_str).replace(tzinfo=timezone.utc)
                 print("publication_time : ",publication_time)
         
    
@@ -234,18 +235,20 @@ class InstagramService:
                 raise ValidationError("❌ Le fichier d'image spécifié est introuvable.")
 
             if publication_time:
-                now = datetime.now(timezone.utc)  # Assurez-vous d'utiliser UTC pour comparer correctement
-                print(f"🕒 Heure actuelle du système : {now}")
-                print(f"🕒 Heure prévue pour la publication : {publication_time}")
-                
-                delay = (publication_time - now).total_seconds()
-                print(f"⏳ Délai avant la publication : {delay} secondes")
-                
+                now_utc = datetime.now(timezone.utc)
+                print(f"🕒 Fuseau horaire de now_utc : {now_utc.tzinfo}")
+                print(f"🕒 Fuseau horaire de publication_time : {publication_time.tzinfo}")
+                print(f"🕒 Heure actuelle UTC : {now_utc}")
+                now = now_utc.astimezone(ZoneInfo('Africa/Nairobi')) 
+                offset_seconds = now.utcoffset().total_seconds()
+                print(f"⏳ Décalage horaire pour {now}: {offset_seconds} secondes")
+                delay = (publication_time - now_utc).total_seconds() - offset_seconds
+                print(f"⏳ Délai avant la publication : {delay:.2f} secondes")
                 if delay > 0:
                     print(f"⏳ Publication planifiée pour {publication_time}")
                     time.sleep(delay)
                     self.client.photo_upload(image, title)
-                elif abs(delay) < 5:  # Tolérance de 5 secondes pour éviter les micro-décalages
+                elif abs(delay) < 5:  
                     print("⚠️ Petite différence de timing détectée, publication immédiate.")
                     self.client.photo_upload(image, title)
                 else:
