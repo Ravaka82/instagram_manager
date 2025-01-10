@@ -118,15 +118,20 @@ class InstagramUserAdmin(admin.ModelAdmin):
     def show_publications(self, request, user_id):
         try:
             instagram_user = InstagramUser.objects.get(id=user_id)
-            publications = Publication.objects.filter(instagram_user=instagram_user)
+            publications = Publication.objects.filter(instagram_user=instagram_user).order_by('-scheduled_at')
+            published_publications = publications.filter(is_published=True)
+            scheduled_publications = publications.filter(is_published=False)
+
         except InstagramUser.DoesNotExist:
             self.message_user(request, "❌ Instagram User not found.", level=messages.ERROR)
             return HttpResponseRedirect('..')
 
         return render(request, 'admin/show_publications.html', {
             'instagram_user': instagram_user,
-            'publications': publications
+            'published_publications': published_publications,
+            'scheduled_publications': scheduled_publications,
         })
+
 
     def show_publications_button(self, obj):
         return format_html(
