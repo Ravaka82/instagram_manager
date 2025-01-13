@@ -20,7 +20,7 @@ class InstagramUser(models.Model):
 class Publication(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
-    image = models.ImageField(upload_to='uploads/', null=True, blank=True)
+    image = models.ImageField(upload_to='publication/', null=True, blank=True)
     date_posted = models.DateTimeField(auto_now_add=True)
     scheduled_at = models.DateTimeField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
