@@ -84,32 +84,21 @@ class InstagramUserAdmin(admin.ModelAdmin):
             content = request.POST.get('content')
             image = request.FILES.get('image')
             schedule = request.POST.get('schedule')
-            print("schedule : ",schedule)
             if not image:
                 self.message_user(request, "❌ Aucune image sélectionnée.", level=messages.ERROR)
                 return HttpResponseRedirect('..')
-
-            file_path = os.path.join('media/', image.name)
-            try:
-                with open(file_path, 'wb') as f:
-                    for chunk in image.chunks():
-                        f.write(chunk)
-            except Exception as e:
-                self.message_user(request, f"❌ Impossible de sauvegarder l'image : {str(e)}", level=messages.ERROR)
-                return HttpResponseRedirect('..')
+        
 
             instagram_service = InstagramService()
             try:
                 
-                result = instagram_service.publish_post(instagram_user, content, content, file_path,schedule)
+                result = instagram_service.publish_post(instagram_user, content, content, image,schedule)
                 if result==1:
                     self.message_user(request, "✅ Publication success!", level=messages.SUCCESS)
                 if result==0:
                     self.message_user(request, "❌ Publication failed!", level=messages.ERROR)
-                os.remove(file_path) 
             except Exception as e:
                 self.message_user(request, f"❌ Erreur lors de la publication : {str(e)}", level=messages.ERROR)
-                os.remove(file_path)
             return HttpResponseRedirect('..')
         return render(request, 'admin/publication_content_form.html', {
             'instagram_user': instagram_user

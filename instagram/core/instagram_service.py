@@ -228,10 +228,14 @@ class InstagramService:
 
     def _publish_now(self, instagram_user, title, description, image,publication_time ):
         try:
-            print("🔑 Connexion à Instagram...")
-            self.client.login(instagram_user.username, instagram_user.password)
-
-            if not os.path.exists(image):
+            file_path = os.path.join('media/publication/', image.name)
+            try:
+                with open(file_path, 'wb+') as f:
+                    for chunk in image.chunks():
+                        f.write(chunk)
+            except Exception as e:
+                print("erreur image save")
+            if not os.path.exists(file_path):
                 raise ValidationError("❌ Le fichier d'image spécifié est introuvable.")
 
             if publication_time:
@@ -246,25 +250,26 @@ class InstagramService:
                 print(f"⏳ Délai avant la publication : {delay:.2f} secondes")
                 if delay > 0:
                     print(f"⏳ Publication planifiée pour {publication_time}")
-                    time.sleep(delay)
-                    self.client.photo_upload(image, title)
                 elif abs(delay) < 5:  
                     print("⚠️ Petite différence de timing détectée, publication immédiate.")
-                    self.client.photo_upload(image, title)
                 else:
                     print(f"⚠️ La date de publication est dans le passé. Veuillez vérifier l'heure.")
-                    return 0
                     raise ValidationError("⚠️ La date de publication est dans le passé. Veuillez vérifier l'heure.")
+                    return 0
+                    
             else:
-                self.client.photo_upload(image, title)
-            print("✅ Publication réussie sur Instagram !")
+                print("🔑 Connexion à Instagram...")
+                self.client.login(instagram_user.username, instagram_user.password)
+                self.client.photo_upload(file_path, title)
+                print("✅ Publication réussie sur Instagram !")
 
             Publication.objects.create(
                 title=title,
                 description=description,
-                image=image,
+                image=file_path,
                 is_published=False, 
                 scheduled_at=publication_time,
+                published_at=publication_time,
                 instagram_user=instagram_user
             )            
             print(f"✅ Publication mise à jour dans la base de données avec succès.")
@@ -335,3 +340,32 @@ class InstagramService:
             print(f"Erreur: {str(e)}")
             return 0
         return 1 if modification_reussie else 0
+    @staticmethod
+    def publication_planifier():
+        print("🕒Planification pub en cours..........")
+        print("datetime.now() = ",datetime.now())
+        publications = Publication.objects.filter(
+            is_published=False,
+            published_at=datetime.now()
+        ).select_related('instagram_user')
+        print(publications.query)
+        result = []
+        print("Publications : ",len(publications))
+        if len(publications)>0:
+            for publication in publications:
+                client = Client()
+                print("🔑 Connexion à Instagram...")
+                client.login(publication.instagram_user.username, publication.instagram_user.password)
+                #client.photo_upload("C:/Users/LUCAS/Downloads/images/ney-pub.jpeg", publication.title)
+                client.photo_upload(publication.image.url, publication.title)
+                print("--------------------------")
+                print(f"Title: {publication['title']}")
+                print(f"Instagram User: {publication['instagram_user_login']}")
+                print(f"Instagram Password: {publication['instagram_user_password']}")
+                print("--------------------------")
+                #("✅ vita publication...")
+
+        return result
+    
+    
+    
