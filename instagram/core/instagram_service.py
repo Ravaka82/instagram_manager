@@ -12,6 +12,9 @@ from django.core.files.base import ContentFile
 from datetime import datetime,timezone,timedelta
 from PIL import Image
 
+from instagram_manager import settings
+
+
 class InstagramService:
     def __init__(self):
         self.client = Client()
@@ -228,7 +231,7 @@ class InstagramService:
 
     def _publish_now(self, instagram_user, title, description, image,publication_time ):
         try:
-            file_path = os.path.join('media/publication/', image.name)
+            file_path = os.path.join('/media/publication/', image.name)
             try:
                 with open(file_path, 'wb+') as f:
                     for chunk in image.chunks():
@@ -340,13 +343,15 @@ class InstagramService:
             print(f"Erreur: {str(e)}")
             return 0
         return 1 if modification_reussie else 0
+    
+
     @staticmethod
     def publication_planifier():
+        print("------------------------------------------------------------------")
         print("🕒Planification pub en cours..........")
-        print("datetime.now() = ",datetime.now())
         publications = Publication.objects.filter(
             is_published=False,
-            published_at=datetime.now()
+            published_at=datetime.now().replace(second=0, microsecond=0)
         ).select_related('instagram_user')
         print(publications.query)
         result = []
@@ -355,17 +360,9 @@ class InstagramService:
             for publication in publications:
                 client = Client()
                 print("🔑 Connexion à Instagram...")
+                relative_path = publication.image.url 
+                absolute_path = os.path.join(settings.MEDIA_ROOT, relative_path.lstrip('/media/'))
+                print("Chemin absolu de l'image : ", absolute_path)
                 client.login(publication.instagram_user.username, publication.instagram_user.password)
-                #client.photo_upload("C:/Users/LUCAS/Downloads/images/ney-pub.jpeg", publication.title)
-                client.photo_upload(publication.image.url, publication.title)
-                print("--------------------------")
-                print(f"Title: {publication['title']}")
-                print(f"Instagram User: {publication['instagram_user_login']}")
-                print(f"Instagram Password: {publication['instagram_user_password']}")
-                print("--------------------------")
-                #("✅ vita publication...")
-
-        return result
-    
-    
-    
+                client.photo_upload(absolute_path, publication.title)
+                ("✅ vita publication...")

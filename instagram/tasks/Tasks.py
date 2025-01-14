@@ -1,41 +1,49 @@
 import schedule
 import time
 from datetime import datetime
-from threading import Thread
+from threading import Thread, Lock
+import os
 
 from instagram.core.instagram_service import InstagramService
 
 class TaskScheduler:
-    execution_time = datetime(2024, 1, 11, 23, 19)  # Date et heure d'exécution statiques
+    lock = Lock()  
+    last_execution_time = None 
 
     @staticmethod
     def faire_coucou():
-        print("Coucou!")
-
+        print("Coucou! ", datetime.now())
+        
     @staticmethod
-    def job():
-        #current_time = datetime.now()
-        #print("current_time = ", current_time)
-        #if current_time >= TaskScheduler.execution_time:
-        TaskScheduler.publication()
-        return schedule.CancelJob  # Annule la tâche après son exécution
-    @staticmethod   
     def publication():
         service = InstagramService()
         service.publication_planifier()
+
+    @staticmethod
+    def job():
+        with TaskScheduler.lock: 
+            now = datetime.now()
             
+           
+            if (TaskScheduler.last_execution_time is None or
+                TaskScheduler.last_execution_time.minute != now.minute):
+                if now.second == 0 and now.microsecond < 500000:  
+                    TaskScheduler.publication()
+                    TaskScheduler.last_execution_time = now
 
 
-# Planifie la tâche toutes les minutes
-schedule.every(1).minute.do(TaskScheduler.job)
+schedule.every(1).minute.at(":00").do(TaskScheduler.job)
 
 def run_schedule():
     while True:
         schedule.run_pending()
-        time.sleep(1)  # Attend 1 seconde pour éviter une boucle infinie trop rapide
+        time.sleep(0.1) 
 
-# Démarre la planification dans un thread séparé
 def start_scheduler():
-    scheduler_thread = Thread(target=run_schedule)
-    scheduler_thread.daemon = True
-    scheduler_thread.start()
+    if os.environ.get("RUN_MAIN") == "true":  
+        scheduler_thread = Thread(target=run_schedule)
+        scheduler_thread.daemon = True
+        scheduler_thread.start()
+
+
+start_scheduler()
