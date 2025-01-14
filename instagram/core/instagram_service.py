@@ -231,7 +231,7 @@ class InstagramService:
 
     def _publish_now(self, instagram_user, title, description, image,publication_time ):
         try:
-            file_path = os.path.join('/media/publication/', image.name)
+            file_path = default_storage.path(image.name)
             try:
                 with open(file_path, 'wb+') as f:
                     for chunk in image.chunks():
@@ -269,7 +269,7 @@ class InstagramService:
             Publication.objects.create(
                 title=title,
                 description=description,
-                image=file_path,
+                image=image,
                 is_published=False, 
                 scheduled_at=publication_time,
                 published_at=publication_time,
@@ -353,16 +353,14 @@ class InstagramService:
             is_published=False,
             published_at=datetime.now().replace(second=0, microsecond=0)
         ).select_related('instagram_user')
-        print(publications.query)
-        result = []
-        print("Publications : ",len(publications))
         if len(publications)>0:
             for publication in publications:
                 client = Client()
                 print("🔑 Connexion à Instagram...")
                 relative_path = publication.image.url 
                 absolute_path = os.path.join(settings.MEDIA_ROOT, relative_path.lstrip('/media/'))
-                print("Chemin absolu de l'image : ", absolute_path)
                 client.login(publication.instagram_user.username, publication.instagram_user.password)
                 client.photo_upload(absolute_path, publication.title)
+                publication.is_published = True
+                publication.save()        
                 ("✅ vita publication...")
