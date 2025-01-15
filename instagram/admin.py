@@ -65,11 +65,13 @@ class InstagramUserAdmin(admin.ModelAdmin):
     profile_picture_display.short_description = 'Profile Picture'
 
     def publish_button(self, obj):
-        return format_html(
+        if obj.is_master == False:
+            return format_html(
             '<a class="button" href="{}"> Post 📝​</a>',
             reverse('admin:publication_content_form', args=[obj.id])
-        )
-
+            )
+        return "❌"
+       
     publish_button.short_description = 'Publish the post'
     publish_button.allow_tags = True
 
@@ -122,11 +124,13 @@ class InstagramUserAdmin(admin.ModelAdmin):
         })
 
 
-    def show_publications_button(self, obj):
-        return format_html(
+    def show_publications_button(self, obj): 
+        if obj.is_master == False:
+            return format_html(
             '<a class="button" href="{}">Show Publications 📜</a>',
             reverse('admin:show_publications', args=[obj.id])
         )
+        return "❌"
 
     show_publications_button.short_description = 'Show Publications'
     show_publications_button.allow_tags = True
